@@ -5,14 +5,14 @@ This document records the agreed input direction and an example contract. It is 
 ## Intended flow
 
 1. The farmer can centre the map on device location. This is a client action; it does not select a parcel or prove ownership.
-2. The client obtains parcel lookup results from the backend by parcel identifier or map coordinates and displays their geometry. The farmer selects a result as their working field.
-3. The backend supplies crop choices. The farmer divides or selects one or more crop-area polygons and enters the crop, sowing date and previous sprays for each. A field may have multiple areas.
+2. The client obtains parcel lookup results from the backend by parcel identifier or map coordinates and displays their geometry. The farmer can select multiple results as their working plots.
+3. The backend supplies crop choices. The farmer draws one or more crop-area polygons on top of each selected GUGiK parcel and enters the crop, sowing date, and past spray date and protection duration for each crop area. Each plot may have multiple crop areas. All required input must be supplied before saving; saved data remains until updated.
 4. MapLibre saves the data via the backend. QGIS reads the same backend representation for spatial inspection. The crop reported by a farmer is distinguishable from any crop-map value.
-5. The frontend mock supplies example responses and accepts and returns submitted data through a switchable interface. The frontend will switch to the real backend once endpoints are ready. Clearly identify mock data and document its storage lifetime.
+5. The switchable frontend mock supplies five example plots, some with saved data and some empty, and accepts and returns submitted data. The frontend will switch to the real backend once endpoints are ready. QGIS can use the same mock examples; frontend-local changes are not shared with QGIS without an agreed exchange. Clearly identify mock data and document its storage lifetime.
 
 ## Proposed field representation
 
-The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates. Empty lists mean no records were supplied, **not** that sprays are known never to have occurred. `null` means unknown or not supplied. Dates describe calendar days, not timestamps.
+The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates. The examples show values in a saved record and an unfilled example. All required inputs must be supplied before a record is saved; the treatment of a field that has never been sprayed remains to be clarified. Dates describe calendar days, not timestamps.
 
 ```json
 {
@@ -34,7 +34,7 @@ The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates. 
       },
       "crop": {"farmer_crop_id": "wheat", "map_crop_id": "maize"},
       "sowing_date": "2024-09-15",
-      "past_sprays": [{"date": "2024-10-10"}]
+      "past_sprays": [{"date": "2024-10-10", "protection_duration": 14}]
     },
     {
       "crop_area_id": "area-demo-2",
@@ -51,7 +51,7 @@ The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates. 
 }
 ```
 
-The identifiers and crop codes above are illustrative; the backend must provide actual available choices. The farmer value and map value are separate so an override does not erase provenance. A parcel selection denotes a working association, not legal ownership.
+The second crop area illustrates an unfilled form, not a valid saved record. The example protection duration is illustrative; its unit must be agreed. The identifiers and crop codes above are illustrative; the backend must provide actual available choices. The farmer-selected crop is used for the crop area; the farmer value and map value are kept separate so the map value is not erased. A parcel selection denotes a working association, not legal ownership.
 
 ## Contract operations to agree
 
@@ -68,13 +68,13 @@ Exact endpoints, request and response envelopes, identifiers, update semantics a
 ## Implementation questions
 
 - What parcel identifier and lookup inputs does the real cadastral service accept, and how should multiple matches and service failures be returned?
-- Should the user draw crop-area boundaries, select existing geometry, or use both? How should geometry validity, overlap, containment and coordinate reference systems be checked?
-- Which fields are required to save a field, and how do we distinguish unknown, not applicable and an explicitly empty spray history?
-- Does a spray need product, amount or other information now, or only its date? Can multiple sprays occur on the same day?
-- How should farmer corrections and source-map values carry provenance, timestamps and history?
+- How should drawn crop-area geometry validity, overlap, containment within the selected parcel and coordinate reference systems be checked?
+- How should the app represent a crop area that has never been sprayed while all required inputs must be completed?
+- What unit should be used for protection duration, and can multiple sprays occur on the same day? Each recorded spray requires its date and protection duration.
+- What metadata should accompany farmer corrections and source-map values beyond retaining both values?
 - What access and isolation rules associate saved fields with users? What mock behaviour is appropriate before those rules are agreed?
 - Which backend-provided options and errors must the farmer-facing flow show, and what does QGIS need to retrieve?
 
 ## Acceptance walkthrough after agreement
 
-Using the frontend mock, select a sample parcel by number and by map click, create two crop-area polygons, save wheat for one and soy for the other, and enter a full sowing date and past spray date. Retrieve the result in the frontend and compare it with the shared example contract used for QGIS. Verify shared saved data across both clients once the backend is available. Check missing inputs, no parcel match, ambiguous results, invalid dates, and backend unavailability. Record what is mocked and not yet implemented. Locate-me should only centre the map.
+Using five frontend mock plots (some saved, some empty), select more than one sample parcel by number and by map click, draw crop-area polygons inside them, enter crops and full sowing dates, and record spray dates and protection durations. Retrieve the result in the frontend and compare it with the shared example contract used for QGIS. Verify shared saved data across both clients once the backend is available. Check missing inputs, no parcel match, ambiguous results, invalid dates, and backend unavailability. Record what is mocked and not yet implemented. Locate-me should only centre the map.
