@@ -6,9 +6,9 @@ This document records the agreed input direction and an example contract. It is 
 
 1. The farmer can centre the map on device location. This is a client action; it does not select a parcel or prove ownership.
 2. The client obtains parcel lookup results from the backend by parcel identifier or map coordinates and displays their geometry. The farmer selects a result as their working field.
-3. The backend supplies crop choices. The farmer divides or selects one or more crop-area polygons and enters the crop, sowing dateand previous sprays for each. A field may have multiple areas.
+3. The backend supplies crop choices. The farmer divides or selects one or more crop-area polygons and enters the crop, sowing date and previous sprays for each. A field may have multiple areas.
 4. MapLibre saves the data via the backend. QGIS reads the same backend representation for spatial inspection. The crop reported by a farmer is distinguishable from any crop-map value.
-5. A mock supplies example responses and accepts and returns submitted data. It must clearly identify mock data and document its storage lifetime.
+5. The frontend mock supplies example responses and accepts and returns submitted data through a switchable interface. The frontend will switch to the real backend once endpoints are ready. Clearly identify mock data and document its storage lifetime.
 
 ## Proposed field representation
 
@@ -63,7 +63,7 @@ The identifiers and crop codes above are illustrative; the backend must provide 
 | Save field | Client sends selected parcel, crop areas and entered data. | Saved field and stable identifiers, or field-level validation errors. |
 | Read field | QGIS or MapLibre requests the saved field. | The same field and crop-area geometries and attributes. |
 
-Exact endpoints, request and response envelopes, identifiers, update semantics and mock persistence are intentionally open for the team to decide. Both clients need to see the same saved data; a process-local mock may reset on restart, which must be disclosed.
+Exact endpoints, request and response envelopes, identifiers, update semantics and mock persistence are intentionally open for the team to decide. The frontend mock is local to the frontend and is not a shared backend; its storage lifetime must be disclosed. QGIS and MapLibre can use the same example contract, but sharing saved data between them requires a backend or a separately agreed exchange.
 
 ## Implementation questions
 
@@ -77,4 +77,4 @@ Exact endpoints, request and response envelopes, identifiers, update semantics a
 
 ## Acceptance walkthrough after agreement
 
-Using the same backend mock, select a sample parcel by number and by map click, create two crop-area polygons, save wheat for one and soy for the other, enter a full sowing date and past spray date. Retrieve the saved result from both client workflows and compare identifiers, polygons and attributes. Check missing inputs, no parcel match, ambiguous results, invalid dates, and backend unavailability. Record what is mocked and not yet implemented. Locate-me should only centre the map.
+Using the frontend mock, select a sample parcel by number and by map click, create two crop-area polygons, save wheat for one and soy for the other, and enter a full sowing date and past spray date. Retrieve the result in the frontend and compare it with the shared example contract used for QGIS. Verify shared saved data across both clients once the backend is available. Check missing inputs, no parcel match, ambiguous results, invalid dates, and backend unavailability. Record what is mocked and not yet implemented. Locate-me should only centre the map.
