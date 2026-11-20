@@ -6,13 +6,13 @@ This document records the agreed input direction and an example contract. It is 
 
 1. The farmer can centre the map on device location. This is a client action; it does not select a parcel or prove ownership.
 2. The client obtains parcel lookup results from the backend by parcel identifier or map coordinates and displays their geometry. The farmer can select multiple results as their working plots.
-3. The backend supplies crop choices. The farmer draws one or more crop-area polygons on top of each selected GUGiK parcel and enters the crop, sowing date, and past spray date and protection duration for each crop area. Each plot may have multiple crop areas. All required input must be supplied before saving; saved data remains until updated.
+3. The backend supplies crop choices. The farmer draws one or more crop-area polygons on top of each selected GUGiK parcel and enters the crop, sowing date, and past spray date and protection duration for each crop area. Each plot may have multiple crop areas. All required input must be supplied before saving; the spray list can be empty when no sprays have been carried out. Saved data remains until updated.
 4. MapLibre saves the data via the backend. QGIS reads the same backend representation for spatial inspection. The crop reported by a farmer is distinguishable from any crop-map value.
 5. The switchable frontend mock supplies five example plots, some with saved data and some empty, and accepts and returns submitted data. The frontend will switch to the real backend once endpoints are ready. QGIS can use the same mock examples; frontend-local changes are not shared with QGIS without an agreed exchange. Clearly identify mock data and document its storage lifetime.
 
 ## Proposed field representation
 
-The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates. The examples show values in a saved record and an unfilled example. All required inputs must be supplied before a record is saved; the treatment of a field that has never been sprayed remains to be clarified. Dates describe calendar days, not timestamps.
+The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates. The examples show values in a saved record and an unfilled example. All required inputs must be supplied before a record is saved. An empty spray list is allowed when no sprays have been carried out. Dates describe calendar days, not timestamps.
 
 ```json
 {
@@ -69,7 +69,6 @@ Exact endpoints, request and response envelopes, identifiers, update semantics a
 
 - What parcel identifier and lookup inputs does the real cadastral service accept, and how should multiple matches and service failures be returned?
 - How should drawn crop-area geometry validity, overlap, containment within the selected parcel and coordinate reference systems be checked?
-- How should the app represent a crop area that has never been sprayed while all required inputs must be completed?
 - What unit should be used for protection duration, and can multiple sprays occur on the same day? Each recorded spray requires its date and protection duration.
 - What metadata should accompany farmer corrections and source-map values beyond retaining both values?
 - What access and isolation rules associate saved fields with users? What mock behaviour is appropriate before those rules are agreed?
