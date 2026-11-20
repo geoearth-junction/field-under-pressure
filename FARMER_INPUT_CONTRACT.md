@@ -53,7 +53,7 @@ The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates. 
 
 The second crop area illustrates an unfilled form, not a valid saved record. The example protection duration is illustrative and expressed in days. The identifiers and crop codes above are illustrative; the backend must provide actual available choices. The farmer-selected crop is used for the crop area; the farmer value and map value are kept separate so the map value is not erased. A parcel selection denotes a working association, not legal ownership.
 
-## Contract operations to agree
+## Contract operation overview
 
 | Need | Proposed behaviour | Example result |
 | --- | --- | --- |
@@ -63,7 +63,7 @@ The second crop area illustrates an unfilled form, not a valid saved record. The
 | Save field | Client sends selected parcel, crop areas and entered data. | Saved field and stable identifiers, or field-level validation errors. |
 | Read field | QGIS or MapLibre requests the saved field. | The same field and crop-area geometries and attributes. |
 
-Exact endpoints, request and response envelopes, identifiers, update semantics and mock persistence are intentionally open for the team to decide. The frontend mock is local to the frontend and is not a shared backend; its storage lifetime must be disclosed. QGIS and MapLibre can use the same example contract, but sharing saved data between them requires a backend or a separately agreed exchange.
+The agreed operations and examples are specified below. Mock persistence and production identity and access details remain implementation work. The frontend mock is local to the frontend and is not a shared backend; its storage lifetime must be disclosed. QGIS and MapLibre can use the same example contract, but sharing saved data between them requires a backend or a separately agreed exchange.
 
 ## Implementation questions
 
@@ -77,3 +77,77 @@ Exact endpoints, request and response envelopes, identifiers, update semantics a
 ## Acceptance walkthrough after agreement
 
 Using five frontend mock plots (some saved, some empty), select more than one sample parcel by number and by map click, draw crop-area polygons over them, enter crops and full sowing dates, and record spray dates and protection durations. Exercise a substantially out-of-bounds drawing and the option to select nearby parcels. Retrieve the result in the frontend and compare it with the shared example contract used for QGIS. Verify shared saved data across both clients once the backend is available. Check missing inputs, no parcel match, ambiguous results, invalid dates, and backend unavailability. Record what is mocked and not yet implemented. Locate-me should only centre the map.
+
+## Agreed operations and examples
+
+These operations describe the interface that the frontend mock will implement locally and the eventual backend will provide. Paths below are relative to the API base; the existing backend prefix can be used. The frontend mock contains five fictional plots: three with saved inputs and two empty. The mock must disclose whether its data survives a browser refresh. Switching data providers must not require changing the client-facing contract.
+
+- `GET /parcels?number={parcel_number}` searches by parcel number.
+- `GET /parcels?lon={longitude}&lat={latitude}` searches by a clicked position.
+- `GET /crops` lists crop choices supplied by the provider.
+- `GET /fields` lists the farmer's saved plots.
+- `GET /fields/{id}` retrieves one saved plot with its crop areas.
+- `PUT /fields/{id}` saves or updates a plot and returns the saved representation.
+
+### Parcel lookup
+
+`GET /parcels?number=DEMO-123` and `GET /parcels?lon=20.755&lat=52.175` use the same response shape. This fictional response contains one match; multiple matches are returned in the same list for the farmer to select.
+
+```json
+{
+  "parcels": [
+    {
+      "parcel_id": "parcel-demo-1",
+      "parcel_number": "DEMO-123",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[20.750, 52.180], [20.760, 52.180], [20.760, 52.170], [20.750, 52.170], [20.750, 52.180]]]
+      }
+    }
+  ],
+  "data_status": "mock"
+}
+```
+
+No match is a successful response with `"parcels": []`; the client displays a no-match message and allows retry. Service unavailability is an error, not an empty result. Device location only centres the map and does not select a parcel.
+
+### Choices
+
+`GET /crops` returns identifiers and labels. These values are fictional examples, not a fixed production list.
+
+```json
+{
+  "crops": [
+    {"id": "wheat", "label": "Pszenica"},
+    {"id": "soy", "label": "Soja"},
+    {"id": "maize", "label": "Kukurydza"}
+  ],
+  "data_status": "mock"
+}
+```
+
+### Save and retrieve
+
+`PUT /fields/field-demo-1` takes the field representation shown above, with every required input completed. For example, the second crop area in that representation can be completed with `"sowing_date": "2024-09-20"` and `"past_sprays": []`; the empty spray list means no sprays yet. A successful response returns the complete saved representation in the same shape, including `field_id` and `data_status`. `GET /fields/field-demo-1` returns that same representation until updated. `GET /fields` returns `{"fields": [ ... ], "data_status": "mock"}`; each item uses the same field representation. The mock examples are fictional; production data must identify its source appropriately.
+
+Required before saving: a selected parcel, at least one crop area, each crop area's polygon, farmer-selected crop and sowing date. Every spray that is recorded requires its date and a positive protection duration in days. An empty spray list is valid. Crop rotation is not collected. The farmer-selected crop is the value used for the crop area; retain a separate crop-map value when available. Use GeoJSON polygon geometry in longitude/latitude and dates as `YYYY-MM-DD`. Reject malformed polygons and invalid dates.
+
+### Errors
+
+Use a consistent error object with a stable code, a readable message and field details where applicable. For example, an invalid date can return a validation error with HTTP 422:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Check the entered data.",
+    "fields": [
+      {"path": "crop_areas[0].sowing_date", "message": "Enter a valid date in YYYY-MM-DD format."}
+    ]
+  }
+}
+```
+
+A service-unavailable response should use a distinct error code and message so the client can offer retry. A no-match result is distinct from service failure; multiple matches are a list, not an error. Farmer-facing messages should be understandable without exposing implementation details.
+
+A crop area may extend substantially outside the selected parcels. Offer nearby parcels for the farmer to select as additional working plots; never add them silently. The team can determine the out-of-bounds threshold and interaction during implementation. Selecting a parcel records a working association and does not establish legal ownership.
