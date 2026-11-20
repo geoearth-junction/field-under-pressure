@@ -1,18 +1,18 @@
-# Farmer input API contract — proposal for issue #11
+# Farmer input API contract — issue #11
 
-**Status: draft for team review.** This document proposes an example contract; it is not an implemented API or an agreed data model. The team should resolve the questions below in issue #11 before the mock is treated as authoritative. No example represents a real parcel or person.
+This document records the agreed input direction and an example contract. It is not an implemented API. No example represents a real parcel or person.
 
 ## Intended flow
 
 1. The farmer can centre the map on device location. This is a client action; it does not select a parcel or prove ownership.
 2. The client obtains parcel lookup results from the backend by parcel identifier or map coordinates and displays their geometry. The farmer selects a result as their working field.
-3. The backend supplies crop choices. The farmer divides or selects one or more crop-area polygons and enters the crop, sowing date, previous sprays and known rotation history for each. A field may have multiple areas.
+3. The backend supplies crop choices. The farmer divides or selects one or more crop-area polygons and enters the crop, sowing dateand previous sprays for each. A field may have multiple areas.
 4. MapLibre saves the data via the backend. QGIS reads the same backend representation for spatial inspection. The crop reported by a farmer is distinguishable from any crop-map value.
 5. A mock supplies example responses and accepts and returns submitted data. It must clearly identify mock data and document its storage lifetime.
 
 ## Proposed field representation
 
-The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates; both are proposals for team review. Empty lists mean no records were supplied, **not** that sprays or past crops are known never to have occurred. `null` means unknown or not supplied. Dates describe calendar days, not timestamps.
+The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates. Empty lists mean no records were supplied, **not** that sprays are known never to have occurred. `null` means unknown or not supplied. Dates describe calendar days, not timestamps.
 
 ```json
 {
@@ -34,8 +34,7 @@ The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates; 
       },
       "crop": {"farmer_crop_id": "wheat", "map_crop_id": "maize"},
       "sowing_date": "2024-09-15",
-      "past_sprays": [{"date": "2024-10-10"}],
-      "rotation_history": [{"year": 2023, "crop_id": "soy"}]
+      "past_sprays": [{"date": "2024-10-10"}]
     },
     {
       "crop_area_id": "area-demo-2",
@@ -45,8 +44,7 @@ The example uses GeoJSON geometry in longitude/latitude and ISO calendar dates; 
       },
       "crop": {"farmer_crop_id": "soy", "map_crop_id": null},
       "sowing_date": null,
-      "past_sprays": [],
-      "rotation_history": []
+      "past_sprays": []
     }
   ],
   "data_status": "mock"
@@ -67,17 +65,16 @@ The identifiers and crop codes above are illustrative; the backend must provide 
 
 Exact endpoints, request and response envelopes, identifiers, update semantics and mock persistence are intentionally open for the team to decide. Both clients need to see the same saved data; a process-local mock may reset on restart, which must be disclosed.
 
-## Review and validation questions
+## Implementation questions
 
 - What parcel identifier and lookup inputs does the real cadastral service accept, and how should multiple matches and service failures be returned?
 - Should the user draw crop-area boundaries, select existing geometry, or use both? How should geometry validity, overlap, containment and coordinate reference systems be checked?
-- Which fields are required to save a draft, and how do we distinguish unknown, not applicable and explicitly empty history?
+- Which fields are required to save a field, and how do we distinguish unknown, not applicable and an explicitly empty spray history?
 - Does a spray need product, amount or other information now, or only its date? Can multiple sprays occur on the same day?
-- Is a single crop per year sufficient for rotation, and how should an unknown year or multiple crops in a year be represented?
 - How should farmer corrections and source-map values carry provenance, timestamps and history?
 - What access and isolation rules associate saved fields with users? What mock behaviour is appropriate before those rules are agreed?
 - Which backend-provided options and errors must the farmer-facing flow show, and what does QGIS need to retrieve?
 
 ## Acceptance walkthrough after agreement
 
-Using the same backend mock, select a sample parcel by number and by map click, create two crop-area polygons, save wheat for one and soy for the other, enter a full sowing date and past spray date, and add a known rotation year. Retrieve the saved result from both client workflows and compare identifiers, polygons and attributes. Check missing inputs, no parcel match, ambiguous results, invalid dates, and backend unavailability. Record what is mocked and not yet implemented. Locate-me should only centre the map.
+Using the same backend mock, select a sample parcel by number and by map click, create two crop-area polygons, save wheat for one and soy for the other, enter a full sowing date and past spray date. Retrieve the saved result from both client workflows and compare identifiers, polygons and attributes. Check missing inputs, no parcel match, ambiguous results, invalid dates, and backend unavailability. Record what is mocked and not yet implemented. Locate-me should only centre the map.
