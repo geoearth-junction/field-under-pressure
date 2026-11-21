@@ -1,5 +1,7 @@
 # Farmer data provider
 
+For the team workflow and backend integration checklist, see [Mock API guide](../MOCK_API_GUIDE.md).
+
 `farmer-data.js` exposes `FarmerData.createProvider(options)` to browser scripts. It implements the frontend mock for the contract in [`../FARMER_INPUT_CONTRACT.md`](../FARMER_INPUT_CONTRACT.md). No backend server or extra package is required for mock mode. The existing map viewer loads the provider, but its farmer-facing UI is separate work in issue #15.
 
 ```js
