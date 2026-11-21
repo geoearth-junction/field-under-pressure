@@ -31,3 +31,15 @@ const data = FarmerData.createProvider({
 ```
 
 Backend mode uses `fetch` and the contract's `/parcels`, `/crops`, and `/fields` paths. It does not fall back to mock data if the backend fails. The real endpoints do not yet exist or have not been verified; integration, CORS, authentication and persistence remain backend work. Callers must catch rejected promises and present a useful message.
+
+## Read-only QGIS layer
+
+The same initial frontend fixtures can be served as a read-only GeoJSON layer, without changing the real backend. From the repository root, with Node.js installed:
+
+```bash
+node web/mock-qgis-server.cjs
+```
+
+In QGIS, add a vector layer from the URL `http://127.0.0.1:8765/mock/plots.geojson`. The layer contains six features across five fictional plots: four crop-area features from the three populated plots and two parcel features for the empty plots. `plot_status` distinguishes saved from empty examples. Crop, sowing date and previous sprays are in the attributes; `past_sprays` is JSON text. The geometry uses GeoJSON longitude/latitude (EPSG:4326).
+
+This server binds to `127.0.0.1` (the same computer) and serves a **read-only snapshot** of the initial frontend examples. It does not access GUGiK, prove ownership, or receive edits from a browser provider instance. Use `FARMER_MOCK_PORT` to select a different port if needed. Stop the server with Ctrl+C. A real backend or a separately agreed shared service is required to exchange edits between clients.
