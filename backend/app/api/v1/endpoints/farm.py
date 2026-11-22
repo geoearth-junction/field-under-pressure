@@ -54,6 +54,12 @@ def _require_area(con, user: dict, crop_area_id: str) -> None:
         raise HTTPException(status_code=404, detail="crop area not found")      # also for somebody else's area
 
 
+def _require_grid_reader(user: dict) -> None:
+    """The grid layers hold weather only (no farm data): the analyst and the sandbox visitors (anybody, no login) may read them."""
+    if user.get("role") != "analyst" and not user.get("sandbox"):
+        raise HTTPException(status_code=403, detail="analyst role or a sandbox session required")
+
+
 def _collection(rows) -> dict:
     return {"type": "FeatureCollection", "features": [r["f"] for r in rows]}
 
@@ -148,10 +154,9 @@ def crop_area_changes(crop_area_id: str, user=Depends(current_user), con=Depends
         "ORDER BY computed_at DESC, change_id DESC LIMIT 200", (crop_area_id,)).fetchall()
 
 
-@router.get("/grid/risk", summary="4 km cells of the voivodeship for one day (analyst only, GeoJSON)")
+@router.get("/grid/risk", summary="4 km cells of the voivodeship for one day (analyst or sandbox, GeoJSON)")
 def grid_risk(day: Optional[date] = Query(None, alias="date"), user=Depends(current_user), con=Depends(get_db)):
-    if user.get("role") != "analyst":
-        raise HTTPException(status_code=403, detail="analyst role required")
+    _require_grid_reader(user)
     rows = con.execute(
         "SELECT jsonb_build_object('type', 'Feature', 'geometry', ST_AsGeoJSON(geom, 6)::jsonb, "
         "'properties', to_jsonb(g) - 'geom' - 'data_date') AS f FROM serve.grid_risk_daily g "
@@ -162,7 +167,7 @@ def grid_risk(day: Optional[date] = Query(None, alias="date"), user=Depends(curr
     return collection
 
 
-@router.get("/grid/risk/surface", summary="Risk surface (heatmap) of the voivodeship for one day (analyst only)")
+@router.get("/grid/risk/surface", summary="Risk surface (heatmap) of the voivodeship for one day (analyst or sandbox)")
 def grid_risk_surface(day: Optional[date] = Query(None, alias="date"),
                       format: str = Query("json", pattern="^(json|png|asc)$"),
                       method: str = Query("interpolate", pattern="^(interpolate|smooth)$",
@@ -174,8 +179,7 @@ def grid_risk_surface(day: Optional[date] = Query(None, alias="date"),
     """The hours of continuous leaf wetness (h_low) of the cells as a continuous surface (services/risk_surface.py); the risk
     index is applied to each pixel afterwards. json: the grid (EPSG:4326, row 0 north, null outside the data). png: RGBA image on
     the fixed ramp, bounds in the X-Bounds header (west,south,east,north). asc: ESRI ASCII Grid (QGIS reads it directly)."""
-    if user.get("role") != "analyst":
-        raise HTTPException(status_code=403, detail="analyst role required")
+    _require_grid_reader(user)
     enforce(_surface_limit, user["owner_id"])
     if method == "smooth" and (resolution < 0.02 or sigma_km > 10.0):
         raise HTTPException(status_code=422, detail="method=smooth needs resolution >= 0.02 (it takes seconds per request)")

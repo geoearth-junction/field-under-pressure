@@ -20,7 +20,7 @@ over them, so the farmer front end and QGIS see the same data and no business lo
   shown time; the API translates them back before saving. No label about the shift is shown.
 - **The class is a statement about conditions**, never an instruction to spray. `conditions_met = true` means class `high`, growth stage
   zone B or C and no protection (`docs/curated_layer_contract.md`, section 3).
-- **Isolation.** A farmer sees only own crop areas (the server filters by `owner_id`); the `analyst` role sees all and the grid layer.
+- **Isolation.** A farmer sees only own crop areas (the server filters by `owner_id`); the `analyst` role sees all and the grid layer; a sandbox visitor (`POST /sandbox`, no login) may read the grid layer and the surface too, since they hold weather only.
 - Geometry is GeoJSON, EPSG:4326, `[lon, lat]`. Dates are `YYYY-MM-DD` (local day). Times are ISO 8601 with offset.
 - **Colour is the reader's job.** Suggested: `low` green, `medium` amber, `high` red, any `status` other than `ok` grey
   (`protected`, `out_of_window`, `insufficient_data`, `stage_unknown`); `uncertain` is shown as the class with a hatch or an outline.
@@ -42,8 +42,8 @@ over them, so the farmer front end and QGIS see the same data and no business lo
 | `GET /crop-areas/{id}` | `serve.crop_area` | one crop area with soil and crop-map context |
 | `GET /crop-areas/{id}/risk?from=&to=` | `serve.risk_daily` | one row per day (the date slider), with `reasons` for the "Why?" screen |
 | `GET /crop-areas/{id}/changes` | `serve.risk_change_log` | when and why the class, status or `conditions_met` changed |
-| `GET /grid/risk?date=` | `serve.grid_risk_daily` | FeatureCollection of the grid cells (rectangles of 0.044°, about 3.0 x 4.9 km, tiling the plane) for the whole voivodeship (analyst), default today |
-| `GET /grid/risk/surface?date=&format=json\|png\|asc&value=index\|hours&method=&resolution=&sigma_km=` | `serve.grid_risk_daily` | the cells as a continuous surface (a heatmap, analyst), see section 3 |
+| `GET /grid/risk?date=` | `serve.grid_risk_daily` | FeatureCollection of the grid cells (rectangles of 0.044°, about 3.0 x 4.9 km, tiling the plane) for the whole voivodeship (analyst or sandbox), default today |
+| `GET /grid/risk/surface?date=&format=json\|png\|asc&value=index\|hours&method=&resolution=&sigma_km=` | `serve.grid_risk_daily` | the cells as a continuous surface (a heatmap, analyst or sandbox), see section 3 |
 | `POST /crop-areas` | `app.crop_area` | saves a crop area (`geometry`, `farmer_crop_id`, `sowing_date`, optional `bbch_override`), recomputes, returns it with today's class |
 | `POST /crop-areas/{id}/sprays` | `app.spray` | `{spray_date, protection_duration_days}`, may be in the past; recomputes, returns `{crop_area, changed_days}` |
 | `DELETE /crop-areas/{id}` | `app.field` | deletes a crop area, 204 |
@@ -85,7 +85,7 @@ round away. `index_low` / `index_high` come from `h_low` / `h_high` (missing hou
 is NULL (e.g. `out_of_window`). Added to `GET /me/crop-areas` (`risk_index`), `GET /crop-areas/{id}/risk` (all three) and
 `GET /grid/risk` (all three).
 
-**`GET /grid/risk/surface` (#49).** A heatmap of the voivodeship for one day (analyst), the cells shown as a continuous surface
+**`GET /grid/risk/surface` (#49).** A heatmap of the voivodeship for one day (analyst or sandbox), the cells shown as a continuous surface
 (`backend/app/services/risk_surface.py`, standard library only). It is built from the **hours** `h_low` of the cells, and the
 `risk_index` is applied to each pixel afterwards. (Building it from the index lost the peaks: the index is capped at 20 h, so
 averaging it lowered every value next to a peak, and the first version showed no pixel of class high while 13 % of the cells were
